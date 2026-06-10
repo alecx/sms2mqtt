@@ -5,12 +5,19 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 )
 
 // ErrDisconnected is returned by Command when the serial stream ended (EOF or
 // read error) before the command's response completed — e.g. the modem reset or
 // was unplugged. The reconnect layer turns this into a re-open.
 var ErrDisconnected = errors.New("modem: serial stream disconnected")
+
+// ErrTimeout is returned by Command when the modem did not produce a final
+// result code within the configured command timeout — a wedged modem whose USB
+// is alive but whose AT processor is unresponsive. It closes the Conn so the
+// reconnect Manager re-opens the port.
+var ErrTimeout = errors.New("modem: command timed out")
 
 // Conn is the single owner of an AT serial port. One goroutine reads the port
 // and either completes the in-flight command's response or routes unsolicited
@@ -24,6 +31,17 @@ type Conn struct {
 	requests chan request
 	urcs     chan string
 	done     chan struct{}
+	timeout  time.Duration // per-command timeout; 0 disables
+}
+
+// ConnOption configures a Conn at construction.
+type ConnOption func(*Conn)
+
+// WithCommandTimeout bounds how long Command waits for a modem response before
+// returning ErrTimeout and tearing the connection down. Zero (the default)
+// disables the timeout.
+func WithCommandTimeout(d time.Duration) ConnOption {
+	return func(c *Conn) { c.timeout = d }
 }
 
 type request struct {
@@ -37,12 +55,15 @@ type result struct {
 }
 
 // NewConn starts the owner goroutine reading rw and returns a ready Conn.
-func NewConn(rw io.ReadWriter) *Conn {
+func NewConn(rw io.ReadWriter, opts ...ConnOption) *Conn {
 	c := &Conn{
 		rw:       rw,
 		requests: make(chan request),
 		urcs:     make(chan string, 32),
 		done:     make(chan struct{}),
+	}
+	for _, opt := range opts {
+		opt(c)
 	}
 	go c.run()
 	return c
@@ -105,11 +126,24 @@ func (c *Conn) serveCommand(req request, lines <-chan string) {
 		req.reply <- result{err: err}
 		return
 	}
+	var deadline <-chan time.Time
+	if c.timeout > 0 {
+		t := time.NewTimer(c.timeout)
+		defer t.Stop()
+		deadline = t.C
+	}
+
 	var a assembler
 	for {
 		select {
 		case <-c.done:
 			req.reply <- result{err: ErrDisconnected}
+			return
+		case <-deadline:
+			// Wedged modem: abandon the command and tear the connection down so
+			// the Manager re-opens the port.
+			req.reply <- result{err: ErrTimeout}
+			c.Close()
 			return
 		case line, ok := <-lines:
 			if !ok {
