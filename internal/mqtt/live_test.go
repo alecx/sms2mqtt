@@ -16,11 +16,12 @@ func TestLive_Publish(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 
-	c, err := New(ctx, Config{
+	c, err := New(Config{
 		Host: "localhost", Port: 1883, ClientID: "sms2mqtt-livetest",
 		AvailabilityTopic: "sms2mqtt/availability",
 		OnlinePayload:     "online", OfflinePayload: "offline",
 	})
+	defer c.Close()
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}

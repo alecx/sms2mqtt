@@ -19,18 +19,17 @@ import (
 // runService runs the full bridge: MQTT (with availability LWT) + a supervised
 // modem that publishes received SMS and periodic GSM stats.
 func runService(ctx context.Context, cfg config.Config) error {
-	availTopic := cfg.TopicPrefix + "/availability"
-	mq, err := mqtt.New(ctx, mqtt.Config{
+	mq, err := mqtt.New(mqtt.Config{
 		Host: cfg.MQTTHost, Port: cfg.MQTTPort, User: cfg.MQTTUser, Pass: cfg.MQTTPass,
 		ClientID:          "sms2mqtt",
-		AvailabilityTopic: availTopic,
+		AvailabilityTopic: cfg.TopicPrefix + "/availability",
 		OnlinePayload:     "online",
 		OfflinePayload:    "offline",
 	})
 	if err != nil {
 		return err
 	}
-	defer mq.Close(context.Background(), availTopic, "offline")
+	defer mq.Close()
 
 	if err := mq.AwaitConnection(ctx); err != nil {
 		return err

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
@@ -25,14 +26,21 @@ type Config struct {
 }
 
 // Client is a connected MQTT publisher. It auto-reconnects via autopaho.
+//
+// The connection lifetime is owned by the Client (an internal context), not the
+// caller's request context, so Close can publish a graceful "offline" before
+// disconnecting instead of having the connection torn down underneath it.
 type Client struct {
-	cm *autopaho.ConnectionManager
+	cm     *autopaho.ConnectionManager
+	cancel context.CancelFunc
+	cfg    Config
 }
 
-// New starts the connection manager. It returns once the manager is created;
-// call AwaitConnection to block until the first connection is up.
-func New(ctx context.Context, cfg Config) (*Client, error) {
+// New starts the connection manager. Call AwaitConnection to block until the
+// first connection is up.
+func New(cfg Config) (*Client, error) {
 	server := &url.URL{Scheme: "mqtt", Host: fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)}
+	ctx, cancel := context.WithCancel(context.Background())
 
 	ac := autopaho.ClientConfig{
 		ServerUrls:                    []*url.URL{server},
@@ -61,9 +69,10 @@ func New(ctx context.Context, cfg Config) (*Client, error) {
 
 	cm, err := autopaho.NewConnection(ctx, ac)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
-	return &Client{cm: cm}, nil
+	return &Client{cm: cm, cancel: cancel, cfg: cfg}, nil
 }
 
 // AwaitConnection blocks until connected or ctx is done.
@@ -82,8 +91,13 @@ func (c *Client) Publish(ctx context.Context, topic string, payload []byte, reta
 	return err
 }
 
-// Close publishes offline and disconnects cleanly.
-func (c *Client) Close(ctx context.Context, availabilityTopic, offlinePayload string) error {
-	_ = c.Publish(ctx, availabilityTopic, []byte(offlinePayload), true)
-	return c.cm.Disconnect(ctx)
+// Close publishes a graceful retained "offline" and disconnects. Because the
+// connection is still up at this point, the explicit offline lands (the LWT
+// covers the crash/unplug case instead).
+func (c *Client) Close() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	_ = c.Publish(ctx, c.cfg.AvailabilityTopic, []byte(c.cfg.OfflinePayload), true)
+	_ = c.cm.Disconnect(ctx)
+	c.cancel()
 }
