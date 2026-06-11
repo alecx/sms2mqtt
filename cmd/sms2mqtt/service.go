@@ -40,7 +40,7 @@ func runService(ctx context.Context, cfg config.Config) error {
 	log.Printf("MQTT connected to %s:%d", cfg.MQTTHost, cfg.MQTTPort)
 
 	// Publish retained MQTT Discovery so HA auto-creates the SMS Gateway device.
-	disco := hass.DiscoveryConfigs(cfg.TopicPrefix)
+	disco := hass.DiscoveryConfigs(cfg.TopicPrefix, int(3*cfg.StatsInterval/time.Second))
 	for _, m := range disco {
 		if err := mq.Publish(ctx, m.Topic, m.Payload, true); err != nil {
 			log.Printf("discovery %s: %v", m.Topic, err)

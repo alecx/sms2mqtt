@@ -11,7 +11,11 @@ type DiscoveryMessage struct {
 // DiscoveryConfigs builds the HA MQTT Discovery configs that create a single
 // "SMS Gateway" device with sensors derived from sms2mqtt/status plus a
 // connectivity sensor from sms2mqtt/availability. Publish each retained.
-func DiscoveryConfigs(topicPrefix string) []DiscoveryMessage {
+//
+// expireAfterSec sets expire_after on the status-derived sensors so they go
+// "unavailable" if the modem stops publishing — giving HA a native staleness
+// signal to alert on. Pass 0 to disable.
+func DiscoveryConfigs(topicPrefix string, expireAfterSec int) []DiscoveryMessage {
 	status := topicPrefix + "/status"
 	avail := topicPrefix + "/availability"
 
@@ -34,6 +38,9 @@ func DiscoveryConfigs(topicPrefix string) []DiscoveryMessage {
 			"payload_available":     "online",
 			"payload_not_available": "offline",
 			"device":                device,
+		}
+		if expireAfterSec > 0 {
+			cfg["expire_after"] = expireAfterSec
 		}
 		for k, v := range extra {
 			cfg[k] = v

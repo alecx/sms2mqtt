@@ -25,7 +25,7 @@ func byObject(t *testing.T, msgs []DiscoveryMessage, obj string) map[string]any 
 }
 
 func TestDiscoveryConfigs_TopicsAndDevice(t *testing.T) {
-	msgs := DiscoveryConfigs("sms2mqtt")
+	msgs := DiscoveryConfigs("sms2mqtt", 180)
 	if len(msgs) < 6 {
 		t.Fatalf("got %d discovery messages, want >= 6", len(msgs))
 	}
@@ -54,7 +54,7 @@ func TestDiscoveryConfigs_TopicsAndDevice(t *testing.T) {
 }
 
 func TestDiscoveryConfigs_SignalSensor(t *testing.T) {
-	cfg := byObject(t, DiscoveryConfigs("sms2mqtt"), "signal_dbm")
+	cfg := byObject(t, DiscoveryConfigs("sms2mqtt", 180), "signal_dbm")
 	if cfg["state_topic"] != "sms2mqtt/status" {
 		t.Errorf("state_topic = %v, want sms2mqtt/status", cfg["state_topic"])
 	}
@@ -73,7 +73,7 @@ func TestDiscoveryConfigs_SignalSensor(t *testing.T) {
 }
 
 func TestDiscoveryConfigs_Connectivity(t *testing.T) {
-	cfg := byObject(t, DiscoveryConfigs("sms2mqtt"), "connectivity")
+	cfg := byObject(t, DiscoveryConfigs("sms2mqtt", 180), "connectivity")
 	// The connectivity sensor IS the availability — it reads the availability
 	// topic directly and must NOT carry its own availability_topic (or it would
 	// go unavailable exactly when it should report "off").
