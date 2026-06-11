@@ -4,7 +4,7 @@ ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
 # BUILD_ARCH is supplied by the Supervisor (aarch64 / amd64) and matches the
-# binary suffixes produced by ../../build.sh.
+# binary suffixes produced by build.sh.
 ARG BUILD_ARCH
 
 COPY run.sh /

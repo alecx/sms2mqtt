@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-OUT=addon/sms2mqtt/bin
+OUT=sms2mqtt/bin
 mkdir -p "$OUT"
 
 build() { # goarch  suffix
