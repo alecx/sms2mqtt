@@ -64,6 +64,9 @@ func DiscoveryConfigs(topicPrefix string) []DiscoveryMessage {
 		statusSensor("sensor", "registration", "Registration", map[string]any{
 			"value_template": "{{ value_json.registration }}", "icon": "mdi:sim",
 		}),
+		statusSensor("sensor", "cell_id", "Cell ID", map[string]any{
+			"value_template": "{{ value_json.cell_id }}", "icon": "mdi:radio-tower",
+		}),
 		statusSensor("binary_sensor", "roaming", "Roaming", map[string]any{
 			"value_template": "{{ 'ON' if value_json.roaming else 'OFF' }}",
 			"icon":           "mdi:earth",

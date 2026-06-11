@@ -1,5 +1,5 @@
 name: SMS2MQTT (TRM240)
-version: "0.3.0"
+version: "0.4.0"
 slug: sms2mqtt
 description: >-
   Bridge a Teltonika TRM240 / Quectel EC21 GSM modem to MQTT — publishes received

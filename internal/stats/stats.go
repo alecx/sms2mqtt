@@ -16,6 +16,8 @@ type Status struct {
 	Registered   bool   `json:"registered"`
 	Roaming      bool   `json:"roaming"`
 	Registration string `json:"registration"`
+	CellID       string `json:"cell_id,omitempty"`
+	AreaCode     string `json:"area_code,omitempty"`
 }
 
 // ParseCSQ parses "+CSQ: <rssi>,<ber>" into signal strength. rssi 0–31 maps

@@ -182,5 +182,15 @@ func pollStatus(c *modem.Conn) stats.Status {
 		s.Registered, s.Roaming = stats.ParseCREG(r.Lines[0])
 		s.Registration = stats.RegistrationName(r.Lines[0])
 	}
+	// Cell ID / area code from the LTE registration (location reporting enabled
+	// in init); fall back to CREG for 2G/3G.
+	for _, cmd := range []string{"AT+CEREG?", "AT+CREG?"} {
+		if r, err := c.Command(cmd); err == nil && len(r.Lines) > 0 {
+			if area, cell := stats.ParseCellInfo(r.Lines[0]); cell != "" {
+				s.AreaCode, s.CellID = area, cell
+				break
+			}
+		}
+	}
 	return s
 }
