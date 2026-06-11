@@ -8,8 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"net/http"
+
 	"github.com/acowan/sms2mqtt/internal/config"
 	"github.com/acowan/sms2mqtt/internal/hass"
+	"github.com/acowan/sms2mqtt/internal/health"
 	"github.com/acowan/sms2mqtt/internal/modem"
 	"github.com/acowan/sms2mqtt/internal/mqtt"
 	"github.com/acowan/sms2mqtt/internal/sms"
@@ -36,6 +39,19 @@ func runService(ctx context.Context, cfg config.Config) error {
 	}
 	log.Printf("MQTT connected to %s:%d", cfg.MQTTHost, cfg.MQTTPort)
 
+	// Liveness for the Supervisor watchdog: healthy = a recent successful stats
+	// publish (which needs both a responsive modem and a live broker).
+	hc := health.New(3 * cfg.StatsInterval)
+	mux := http.NewServeMux()
+	mux.Handle("/health", hc)
+	healthSrv := &http.Server{Addr: cfg.HealthAddr, Handler: mux}
+	go func() {
+		if err := healthSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("health server: %v", err)
+		}
+	}()
+	defer healthSrv.Close()
+
 	purged := false
 	mgr := &modem.Manager{
 		Open: func() (io.ReadWriteCloser, error) {
@@ -53,7 +69,7 @@ func runService(ctx context.Context, cfg config.Config) error {
 				log.Printf("purged %d backlog message(s) on first start", n)
 				purged = true
 			}
-			go statsLoop(ctx, c, mq, cfg)
+			go statsLoop(ctx, c, mq, cfg, hc)
 			go smsLoop(ctx, c, mq, cfg)
 			return nil
 		},
@@ -124,12 +140,14 @@ func readAndPublish(ctx context.Context, c *modem.Conn, mq *mqtt.Client, cfg con
 
 // statsLoop polls GSM status on the configured interval and publishes it
 // (retained) to sms2mqtt/status until the connection drops.
-func statsLoop(ctx context.Context, c *modem.Conn, mq *mqtt.Client, cfg config.Config) {
+func statsLoop(ctx context.Context, c *modem.Conn, mq *mqtt.Client, cfg config.Config, hc *health.Health) {
 	t := time.NewTicker(cfg.StatsInterval)
 	defer t.Stop()
 	for {
 		if payload, err := hass.StatusJSON(pollStatus(c), time.Now()); err == nil {
-			_ = mq.Publish(ctx, cfg.TopicPrefix+"/status", payload, true)
+			if err := mq.Publish(ctx, cfg.TopicPrefix+"/status", payload, true); err == nil {
+				hc.Beat() // modem responded + broker reachable
+			}
 		}
 		select {
 		case <-ctx.Done():
