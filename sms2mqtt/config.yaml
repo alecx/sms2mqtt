@@ -1,5 +1,5 @@
 name: SMS2MQTT (TRM240)
-version: "0.1.0"
+version: "0.2.0"
 slug: sms2mqtt
 description: >-
   Bridge a Teltonika TRM240 / Quectel EC21 GSM modem to MQTT — publishes received
@@ -16,9 +16,11 @@ init: false
 uart: true
 udev: true
 host_network: false
-# MQTT broker credentials are injected by the Supervisor (no hardcoding).
+# MQTT creds come from the Supervisor's broker by default (no hardcoding); an
+# external broker can be set via the mqtt_host option below (want, not need, so
+# the add-on still starts when pointing at an external broker).
 services:
-  - mqtt:need
+  - mqtt:want
 # Supervisor restarts the add-on if /health stops returning 200.
 watchdog: "http://[HOST]:[PORT:8099]/health"
 options:
@@ -26,8 +28,19 @@ options:
   baud: 115200
   stats_interval: 60s
   log_level: info
+  # Leave mqtt_host blank to use this HA instance's Mosquitto (core-mosquitto).
+  # Set it to publish to a different broker, e.g. another HA's broker at
+  # 192.168.10.5, so that instance's automations react to the SMS.
+  mqtt_host: ""
+  mqtt_port: 1883
+  mqtt_user: ""
+  mqtt_pass: ""
 schema:
   serial_device: str
   baud: int
   stats_interval: str
   log_level: list(trace|debug|info|warning|error)
+  mqtt_host: str?
+  mqtt_port: int?
+  mqtt_user: str?
+  mqtt_pass: str?

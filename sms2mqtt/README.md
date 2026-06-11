@@ -30,8 +30,20 @@ Regenerate with `./build.sh` from the repo root after code changes.
 | `stats_interval` | `60s` | Doubles as the heartbeat; `/health` fails after 3× this with no publish. |
 | `log_level` | `info` | |
 
-MQTT host/credentials come from the Supervisor (`mqtt:need`) — install the
-**Mosquitto broker** add-on first.
+By default MQTT host/credentials come from this HA instance's broker
+(`core-mosquitto`) — install the **Mosquitto broker** add-on.
+
+### Publishing to a different broker
+
+If the automations that should react to the SMS live on **another HA instance**
+(e.g. the modem is on the Yellow but your `incoming_sms` automation + notifier
+are on a NUC), set `mqtt_host` to that broker so the message reaches it:
+
+| Option | Example | Notes |
+|---|---|---|
+| `mqtt_host` | `192.168.10.5` | Blank = this instance's `core-mosquitto`. Set to another broker's IP to publish there. |
+| `mqtt_port` | `1883` | |
+| `mqtt_user` / `mqtt_pass` | | Leave blank for anonymous brokers. |
 
 ## ⚠️ ModemManager on Home Assistant OS
 

@@ -9,13 +9,20 @@ export SMS2MQTT_STATS_INTERVAL="$(bashio::config 'stats_interval')"
 export SMS2MQTT_LOG_LEVEL="$(bashio::config 'log_level')"
 export SMS2MQTT_HEALTH_ADDR=":8099"
 
-if bashio::services.available "mqtt"; then
+# An explicit mqtt_host wins (e.g. point at another HA instance's broker so its
+# automations react). Otherwise use the Supervisor's Mosquitto.
+if bashio::config.has_value 'mqtt_host'; then
+  export SMS2MQTT_MQTT_HOST="$(bashio::config 'mqtt_host')"
+  export SMS2MQTT_MQTT_PORT="$(bashio::config 'mqtt_port')"
+  export SMS2MQTT_MQTT_USER="$(bashio::config 'mqtt_user')"
+  export SMS2MQTT_MQTT_PASS="$(bashio::config 'mqtt_pass')"
+elif bashio::services.available "mqtt"; then
   export SMS2MQTT_MQTT_HOST="$(bashio::services mqtt 'host')"
   export SMS2MQTT_MQTT_PORT="$(bashio::services mqtt 'port')"
   export SMS2MQTT_MQTT_USER="$(bashio::services mqtt 'username')"
   export SMS2MQTT_MQTT_PASS="$(bashio::services mqtt 'password')"
 else
-  bashio::exit.nok "No MQTT service available — add the Mosquitto broker add-on."
+  bashio::exit.nok "No MQTT broker — set the mqtt_host option or install the Mosquitto broker add-on."
 fi
 
 bashio::log.info "Starting sms2mqtt on ${SMS2MQTT_SERIAL_DEVICE} -> mqtt ${SMS2MQTT_MQTT_HOST}:${SMS2MQTT_MQTT_PORT}"
