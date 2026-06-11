@@ -18,7 +18,7 @@ Regenerate with `./build.sh` from the repo root after code changes.
 
 ### Option B — GitHub custom repository (for ongoing updates)
 1. Settings → Add-ons → Add-on Store → ⋮ → **Repositories** → add
-   `https://github.com/acowan/sms2mqtt`.
+   `https://github.com/alecx/sms2mqtt`.
 2. Install **SMS2MQTT (TRM240)** from the new repository entry.
 
 ## Configuration

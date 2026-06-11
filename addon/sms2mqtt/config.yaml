@@ -4,7 +4,7 @@ slug: sms2mqtt
 description: >-
   Bridge a Teltonika TRM240 / Quectel EC21 GSM modem to MQTT — publishes received
   SMS and GSM stats (operator, signal, roaming) to Home Assistant.
-url: https://github.com/acowan/sms2mqtt
+url: https://github.com/alecx/sms2mqtt
 arch:
   - aarch64
   - amd64
