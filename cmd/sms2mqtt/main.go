@@ -37,7 +37,9 @@ func main() {
 		return
 	}
 
-	log.Fatal("full MQTT mode not implemented yet — run with --dryrun (ARD-341/342)")
+	if err := runService(ctx, cfg); err != nil && ctx.Err() == nil {
+		log.Fatalf("service: %v", err)
+	}
 }
 
 // runDryrun opens the modem once, initializes it, then prints any new-SMS URCs

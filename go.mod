@@ -2,6 +2,13 @@ module github.com/acowan/sms2mqtt
 
 go 1.25.0
 
-require go.bug.st/serial v1.7.1
+require (
+	github.com/eclipse/paho.golang v0.23.0
+	go.bug.st/serial v1.7.1
+)
 
-require golang.org/x/sys v0.43.0 // indirect
+require (
+	github.com/gorilla/websocket v1.5.3 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+)
