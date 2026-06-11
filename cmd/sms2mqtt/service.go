@@ -39,6 +39,15 @@ func runService(ctx context.Context, cfg config.Config) error {
 	}
 	log.Printf("MQTT connected to %s:%d", cfg.MQTTHost, cfg.MQTTPort)
 
+	// Publish retained MQTT Discovery so HA auto-creates the SMS Gateway device.
+	disco := hass.DiscoveryConfigs(cfg.TopicPrefix)
+	for _, m := range disco {
+		if err := mq.Publish(ctx, m.Topic, m.Payload, true); err != nil {
+			log.Printf("discovery %s: %v", m.Topic, err)
+		}
+	}
+	log.Printf("published %d MQTT discovery configs", len(disco))
+
 	// Liveness for the Supervisor watchdog: healthy = a recent successful stats
 	// publish (which needs both a responsive modem and a live broker).
 	hc := health.New(3 * cfg.StatsInterval)
